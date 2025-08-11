@@ -15,6 +15,20 @@ function App() {
   const [error, setError] = useState('')
   const [darkMode, setDarkMode] = useState(false)
   const [activeSection, setActiveSection] = useState('home')
+  const [showPreloader, setShowPreloader] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowPreloader(false)
+      toast.success('Welcome to VideoDownloader! Start downloading your favorite videos', {
+        position: 'top-center',
+        autoClose: 4000,
+        hideProgressBar: false,
+        icon: <i className="bi bi-check-circle-fill" style={{color: '#28a745'}}></i>
+      })
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('darkMode')
@@ -27,6 +41,9 @@ function App() {
     const newMode = !darkMode
     setDarkMode(newMode)
     localStorage.setItem('darkMode', JSON.stringify(newMode))
+    toast.info(`Switched to ${newMode ? 'Dark' : 'Light'} mode`, {
+      icon: <i className={`bi ${newMode ? 'bi-moon-fill' : 'bi-sun-fill'}`} style={{color: '#ff9a56'}}></i>
+    })
   }
 
   const API_CONFIG = {
@@ -43,9 +60,17 @@ function App() {
 
   const downloadVideo = async () => {
     if (!url.trim()) {
-      toast.error('Please enter a valid URL')
+      toast.error('Please enter a valid URL', {
+        position: 'top-center',
+        icon: <i className="bi bi-exclamation-triangle-fill" style={{color: '#dc3545'}}></i>
+      })
       return
     }
+    
+    toast.info(`Processing ${platform} video...`, {
+      autoClose: 2000,
+      icon: <i className="bi bi-arrow-clockwise" style={{color: '#17a2b8'}}></i>
+    })
 
     setLoading(true)
     setProgress(0)
@@ -120,18 +145,30 @@ function App() {
           author: typeof data.author === 'object' ? data.author?.username || data.author?.full_name || 'Unknown' : String(data.author || data.meta?.author || 'Unknown'),
           formats: formats
         })
-        toast.success('Video processed successfully!')
+        toast.success('Video processed successfully! Ready to download', {
+          position: 'top-center',
+          autoClose: 4000,
+          icon: <i className="bi bi-check-circle-fill" style={{color: '#28a745'}}></i>
+        })
       } else {
         console.log('API Error:', data)
         const errorMsg = data.msg || data.message || data.error || 'Download failed'
         setError(errorMsg)
-        toast.error(errorMsg)
+        toast.error(errorMsg, {
+          position: 'top-center',
+          autoClose: 5000,
+          icon: <i className="bi bi-x-circle-fill" style={{color: '#dc3545'}}></i>
+        })
       }
     } catch (err) {
       console.log('Network Error:', err)
       const errorMsg = `Network error: ${err.message}`
       setError(errorMsg)
-      toast.error(errorMsg)
+      toast.error(errorMsg, {
+        position: 'top-center',
+        autoClose: 5000,
+        icon: <i className="bi bi-wifi-off" style={{color: '#dc3545'}}></i>
+      })
     } finally {
       clearInterval(progressInterval)
       setProgress(100)
@@ -149,10 +186,53 @@ function App() {
   const scrollToSection = (section) => {
     setActiveSection(section)
     document.getElementById(section)?.scrollIntoView({ behavior: 'smooth' })
+    
+    const sectionNames = {
+      home: 'Home',
+      about: 'About Us', 
+      services: 'Services',
+      'how-it-works': 'How it Works'
+    }
+    
+    toast.info(`Navigated to ${sectionNames[section]}`, {
+      autoClose: 1500,
+      hideProgressBar: true,
+      icon: <i className="bi bi-geo-alt-fill" style={{color: '#17a2b8'}}></i>
+    })
+  }
+  
+  const handlePlatformChange = (newPlatform) => {
+    setPlatform(newPlatform)
+    const platformIcons = {
+      instagram: 'bi-instagram',
+      youtube: 'bi-youtube', 
+      facebook: 'bi-facebook',
+      tiktok: 'bi-tiktok'
+    }
+    
+    toast.success(`${newPlatform.charAt(0).toUpperCase() + newPlatform.slice(1)} selected!`, {
+      autoClose: 2000,
+      hideProgressBar: true,
+      icon: <i className={`bi ${platformIcons[newPlatform]}`} style={{color: '#28a745'}}></i>
+    })
   }
 
   return (
-    <div className={`app ${darkMode ? 'dark-theme' : 'light-theme'}`}>
+    <>
+      {/* Preloader */}
+      {showPreloader && (
+        <div className="preloader">
+          <div className="preloader-content">
+            <div className="preloader-logo">
+              <i className="bi bi-camera-video-fill"></i>
+            </div>
+            <div className="preloader-text">VideoDownloader</div>
+            <div className="preloader-spinner"></div>
+          </div>
+        </div>
+      )}
+      
+      <div className={`app ${darkMode ? 'dark-theme' : 'light-theme'}`}>
       {/* Navbar */}
       <Navbar expand="lg" className="custom-navbar" fixed="top">
         <Container>
@@ -206,7 +286,7 @@ function App() {
       </Modal>
       
       {/* Home Section */}
-      <section id="home" className="py-5" style={{marginTop: '80px'}}>
+      <section id="home" className="hero-section">
         <Container>
           <Row className="justify-content-center">
             <Col lg={8} xl={6}>
@@ -218,7 +298,7 @@ function App() {
                 <p className="lead">Download videos from Instagram, YouTube, Facebook & TikTok</p>
               </div>
             
-              <Card className="mb-4 shadow-lg border-0">
+              <Card className="mb-4 shadow-lg border-0 animate-fadeInUp">
                 <Card.Body className="p-4">
                   <Form.Group className="mb-4">
                     <Form.Label className="h5 mb-3">
@@ -234,7 +314,7 @@ function App() {
                         <OverlayTrigger key={p.key} placement="top" overlay={renderTooltip(p.tooltip)}>
                           <Button
                             variant={platform === p.key ? 'warning' : 'outline-warning'}
-                            onClick={() => setPlatform(p.key)}
+                            onClick={() => handlePlatformChange(p.key)}
                             className="platform-btn"
                           >
                             <i className={`bi ${p.icon} me-2`}></i>{p.name}
@@ -406,7 +486,7 @@ function App() {
               {icon: 'bi-tiktok', title: 'TikTok Downloader', desc: 'Download TikTok videos without watermark'}
             ].map((service, index) => (
               <Col md={6} lg={3} key={index} className="mb-4">
-                <Card className="h-100 border-0 shadow service-card">
+                <Card className="h-100 border-0 shadow service-card animate-fadeInUp">
                   <Card.Body className="text-center p-4">
                     <i className={`bi ${service.icon} text-warning mb-3`} style={{fontSize: '3rem'}}></i>
                     <h5>{service.title}</h5>
@@ -435,7 +515,7 @@ function App() {
               {step: '3', icon: 'bi-download', title: 'Download', desc: 'Click download and choose your preferred quality'}
             ].map((step, index) => (
               <Col md={4} key={index} className="mb-4">
-                <Card className="h-100 border-0 shadow text-center">
+                <Card className="h-100 border-0 shadow text-center animate-zoomIn">
                   <Card.Body className="p-4">
                     <div className="step-number mb-3">{step.step}</div>
                     <i className={`bi ${step.icon} text-warning mb-3`} style={{fontSize: '2.5rem'}}></i>
@@ -450,36 +530,118 @@ function App() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-dark text-white py-4">
+      <footer className="attractive-footer py-5">
         <Container>
-          <Row>
-            <Col md={6}>
-              <h5>
-                <i className="bi bi-camera-video-fill me-2"></i>
-                Social Media Downloader
-              </h5>
-              <p className="text-muted">Download videos from your favorite social media platforms quickly and easily.</p>
+          <Row className="mb-4">
+            <Col lg={4} md={6} className="mb-4">
+              <div className="footer-brand mb-3">
+                <h4 className="text-white mb-3">
+                  <i className="bi bi-camera-video-fill text-warning me-2"></i>
+                  VideoDownloader
+                </h4>
+                <p className="text-light-50 mb-3">
+                  Your ultimate destination for downloading videos from all major social media platforms. Fast, secure, and reliable.
+                </p>
+                <div className="social-links">
+                  <OverlayTrigger placement="top" overlay={renderTooltip('Follow on Instagram')}>
+                    <Button variant="outline-warning" size="sm" className="social-btn me-2">
+                      <i className="bi bi-instagram"></i>
+                    </Button>
+                  </OverlayTrigger>
+                  <OverlayTrigger placement="top" overlay={renderTooltip('Subscribe on YouTube')}>
+                    <Button variant="outline-warning" size="sm" className="social-btn me-2">
+                      <i className="bi bi-youtube"></i>
+                    </Button>
+                  </OverlayTrigger>
+                  <OverlayTrigger placement="top" overlay={renderTooltip('Follow on Facebook')}>
+                    <Button variant="outline-warning" size="sm" className="social-btn me-2">
+                      <i className="bi bi-facebook"></i>
+                    </Button>
+                  </OverlayTrigger>
+                  <OverlayTrigger placement="top" overlay={renderTooltip('Follow on TikTok')}>
+                    <Button variant="outline-warning" size="sm" className="social-btn">
+                      <i className="bi bi-tiktok"></i>
+                    </Button>
+                  </OverlayTrigger>
+                </div>
+              </div>
             </Col>
-            <Col md={6}>
-              <h6>Quick Links</h6>
-              <div className="d-flex gap-3">
-                <Button variant="link" className="text-white p-0" onClick={() => scrollToSection('home')}>
-                  <i className="bi bi-house-fill me-1"></i>Home
+            
+            <Col lg={2} md={6} className="mb-4">
+              <h6 className="text-warning mb-3">Quick Links</h6>
+              <div className="footer-links">
+                <Button variant="link" className="footer-link p-0 d-block mb-2" onClick={() => scrollToSection('home')}>
+                  <i className="bi bi-house-fill me-2"></i>Home
                 </Button>
-                <Button variant="link" className="text-white p-0" onClick={() => scrollToSection('about')}>
-                  <i className="bi bi-info-circle-fill me-1"></i>About
+                <Button variant="link" className="footer-link p-0 d-block mb-2" onClick={() => scrollToSection('about')}>
+                  <i className="bi bi-info-circle-fill me-2"></i>About Us
                 </Button>
-                <Button variant="link" className="text-white p-0" onClick={() => scrollToSection('services')}>
-                  <i className="bi bi-gear-fill me-1"></i>Services
+                <Button variant="link" className="footer-link p-0 d-block mb-2" onClick={() => scrollToSection('services')}>
+                  <i className="bi bi-gear-fill me-2"></i>Services
+                </Button>
+                <Button variant="link" className="footer-link p-0 d-block mb-2" onClick={() => scrollToSection('how-it-works')}>
+                  <i className="bi bi-question-circle-fill me-2"></i>How it Works
                 </Button>
               </div>
             </Col>
+            
+            <Col lg={3} md={6} className="mb-4">
+              <h6 className="text-warning mb-3">Supported Platforms</h6>
+              <div className="supported-platforms">
+                <div className="platform-item mb-2">
+                  <i className="bi bi-instagram text-warning me-2"></i>
+                  <span className="text-light-50">Instagram Videos & Reels</span>
+                </div>
+                <div className="platform-item mb-2">
+                  <i className="bi bi-youtube text-warning me-2"></i>
+                  <span className="text-light-50">YouTube Videos</span>
+                </div>
+                <div className="platform-item mb-2">
+                  <i className="bi bi-facebook text-warning me-2"></i>
+                  <span className="text-light-50">Facebook Videos</span>
+                </div>
+                <div className="platform-item mb-2">
+                  <i className="bi bi-tiktok text-warning me-2"></i>
+                  <span className="text-light-50">TikTok Videos</span>
+                </div>
+              </div>
+            </Col>
+            
+            <Col lg={3} md={6} className="mb-4">
+              <h6 className="text-warning mb-3">Features</h6>
+              <div className="features-list">
+                <div className="feature-item mb-2">
+                  <i className="bi bi-shield-check text-success me-2"></i>
+                  <span className="text-light-50">100% Secure</span>
+                </div>
+                <div className="feature-item mb-2">
+                  <i className="bi bi-lightning-fill text-info me-2"></i>
+                  <span className="text-light-50">Super Fast</span>
+                </div>
+                <div className="feature-item mb-2">
+                  <i className="bi bi-download text-primary me-2"></i>
+                  <span className="text-light-50">Multiple Qualities</span>
+                </div>
+                <div className="feature-item mb-2">
+                  <i className="bi bi-phone text-warning me-2"></i>
+                  <span className="text-light-50">Mobile Friendly</span>
+                </div>
+              </div>
+            </Col>
           </Row>
-          <hr className="my-3" />
-          <Row>
-            <Col className="text-center">
-              <p className="mb-0 text-muted">
-                © 2024 Social Media Downloader. Made with <i className="bi bi-heart-fill text-danger"></i> for content creators.
+          
+          <hr className="footer-divider my-4" />
+          
+          <Row className="align-items-center">
+            <Col md={6}>
+              <p className="mb-0 text-light">
+                © 2024 Social Media Downloader. All rights reserved.
+              </p>
+            </Col>
+            <Col md={6} className="text-md-end">
+              <p className="mb-0 text-light">
+                Made with <i className="bi bi-heart-fill text-danger heartbeat"></i> by 
+                <span className="developer-name">ShehriyarDev</span> for content creators
               </p>
             </Col>
           </Row>
@@ -499,6 +661,7 @@ function App() {
         theme={darkMode ? 'dark' : 'light'}
       />
     </div>
+    </>
   )
 }
 
