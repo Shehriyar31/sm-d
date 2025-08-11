@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Container, Row, Col, Card, Button, Form, ProgressBar, Badge, Modal, Navbar, Nav, OverlayTrigger, Tooltip } from 'react-bootstrap'
-import { toast, ToastContainer } from 'react-toastify'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
-import 'react-toastify/dist/ReactToastify.css'
 import './App.css'
 
 function App() {
@@ -20,12 +18,6 @@ function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowPreloader(false)
-      toast.success('Welcome to VideoDownloader! Start downloading your favorite videos', {
-        position: 'top-center',
-        autoClose: 4000,
-        hideProgressBar: false,
-        icon: <i className="bi bi-check-circle-fill" style={{color: '#28a745'}}></i>
-      })
     }, 3000)
     return () => clearTimeout(timer)
   }, [])
@@ -37,13 +29,18 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    const themeColor = darkMode ? '#2d2d2d' : '#ff9a56'
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', themeColor)
+    }
+  }, [darkMode])
+
   const toggleTheme = () => {
     const newMode = !darkMode
     setDarkMode(newMode)
     localStorage.setItem('darkMode', JSON.stringify(newMode))
-    toast.info(`Switched to ${newMode ? 'Dark' : 'Light'} mode`, {
-      icon: <i className={`bi ${newMode ? 'bi-moon-fill' : 'bi-sun-fill'}`} style={{color: '#ff9a56'}}></i>
-    })
   }
 
   const API_CONFIG = {
@@ -60,17 +57,9 @@ function App() {
 
   const downloadVideo = async () => {
     if (!url.trim()) {
-      toast.error('Please enter a valid URL', {
-        position: 'top-center',
-        icon: <i className="bi bi-exclamation-triangle-fill" style={{color: '#dc3545'}}></i>
-      })
+      setError('Please enter a valid URL')
       return
     }
-    
-    toast.info(`Processing ${platform} video...`, {
-      autoClose: 2000,
-      icon: <i className="bi bi-arrow-clockwise" style={{color: '#17a2b8'}}></i>
-    })
 
     setLoading(true)
     setProgress(0)
@@ -145,30 +134,18 @@ function App() {
           author: typeof data.author === 'object' ? data.author?.username || data.author?.full_name || 'Unknown' : String(data.author || data.meta?.author || 'Unknown'),
           formats: formats
         })
-        toast.success('Video processed successfully! Ready to download', {
-          position: 'top-center',
-          autoClose: 4000,
-          icon: <i className="bi bi-check-circle-fill" style={{color: '#28a745'}}></i>
-        })
+
       } else {
         console.log('API Error:', data)
         const errorMsg = data.msg || data.message || data.error || 'Download failed'
         setError(errorMsg)
-        toast.error(errorMsg, {
-          position: 'top-center',
-          autoClose: 5000,
-          icon: <i className="bi bi-x-circle-fill" style={{color: '#dc3545'}}></i>
-        })
+
       }
     } catch (err) {
       console.log('Network Error:', err)
       const errorMsg = `Network error: ${err.message}`
       setError(errorMsg)
-      toast.error(errorMsg, {
-        position: 'top-center',
-        autoClose: 5000,
-        icon: <i className="bi bi-wifi-off" style={{color: '#dc3545'}}></i>
-      })
+
     } finally {
       clearInterval(progressInterval)
       setProgress(100)
@@ -186,35 +163,10 @@ function App() {
   const scrollToSection = (section) => {
     setActiveSection(section)
     document.getElementById(section)?.scrollIntoView({ behavior: 'smooth' })
-    
-    const sectionNames = {
-      home: 'Home',
-      about: 'About Us', 
-      services: 'Services',
-      'how-it-works': 'How it Works'
-    }
-    
-    toast.info(`Navigated to ${sectionNames[section]}`, {
-      autoClose: 1500,
-      hideProgressBar: true,
-      icon: <i className="bi bi-geo-alt-fill" style={{color: '#17a2b8'}}></i>
-    })
   }
   
   const handlePlatformChange = (newPlatform) => {
     setPlatform(newPlatform)
-    const platformIcons = {
-      instagram: 'bi-instagram',
-      youtube: 'bi-youtube', 
-      facebook: 'bi-facebook',
-      tiktok: 'bi-tiktok'
-    }
-    
-    toast.success(`${newPlatform.charAt(0).toUpperCase() + newPlatform.slice(1)} selected!`, {
-      autoClose: 2000,
-      hideProgressBar: true,
-      icon: <i className={`bi ${platformIcons[newPlatform]}`} style={{color: '#28a745'}}></i>
-    })
   }
 
   return (
@@ -348,6 +300,12 @@ function App() {
                         </Button>
                       </OverlayTrigger>
                     </div>
+                    {error && (
+                      <div className="alert alert-danger mt-3" role="alert">
+                        <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                        {error}
+                      </div>
+                    )}
                   </Form.Group>
                 </Card.Body>
               </Card>
@@ -648,18 +606,7 @@ function App() {
         </Container>
       </footer>
       
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme={darkMode ? 'dark' : 'light'}
-      />
+
     </div>
     </>
   )
